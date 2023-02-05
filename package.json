@@ -1,0 +1,29 @@
+{
+  "name": "employee-tracker",
+  "version": "1.0.0",
+  "description": "a command-line application manages a company's employee database, using Node.js, Inquirer, and MySQL.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lzh1990214/Employee-Tracker.git"
+  },
+  "keywords": [
+    "employee",
+    "database",
+    "MySQL"
+  ],
+  "author": "zhihao li",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/lzh1990214/Employee-Tracker/issues"
+  },
+  "homepage": "https://github.com/lzh1990214/Employee-Tracker#readme",
+  "dependencies": {
+    "console.table": "^0.10.0",
+    "inquirer": "^8.2.4",
+    "mysql2": "^3.1.0"
+  }
+}
