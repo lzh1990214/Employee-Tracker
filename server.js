@@ -15,14 +15,14 @@ const db = mysql.createConnection({
     // console.log(`Connected to the myBusiness_db database.`),
 );
 
-// add connection.db
+// connect to MySQL database
 db.connect(async (err) => {
-    if (err) throw err;
-    console.log(`Connected to the myBusiness_db database.`);
-    init();
+    if (err) { console.log(err); }
+    else {
+        console.log(`Connected to the myBusiness_db database.`);
+        init();
+    }
 });
-
-
 
 const questionMain = [
     {
@@ -46,20 +46,19 @@ const questionMain = [
 const init = async () => {
     let questionRes = await inquirer.prompt(questionMain);
     option(questionRes.dashboard);
-    console.log(questionRes.dashboard);
+    // console.log(questionRes.dashboard);
 };
 
 // different options in mainOptions
 const option = async (response) => {
     if (response === 'View all departments') {
-        viewDepartment();
+        viewDepartment(response);
     }
     else if (response === 'View all roles') {
-        viewRole();
+        viewRole(response);
     }
     else if (response === 'View all employees') {
         viewEmployee(response);
-        // console.log('all people');
     }
     else if (response === 'Add a department') {
         addDepartment();
@@ -79,11 +78,37 @@ const option = async (response) => {
     }
 };
 
-// function to view table for all employees
-function viewEmployee() {
-    const query = `SELECT * FROM employee`;
+// function to display table of all departments
+function viewDepartment() {
+    // Import query from Queries class;
+    const query = new Queries();
+    db.query(query.viewDepartment(), (err, department) => {
+        if (err) { console.log(err); }
+        else {
+            console.table(department);
+            init();
+        }
+    });
+};
 
-    db.query(query, (err, employee) => {
+// function to display table of all roles
+function viewRole() {
+    // Import query from Queries class;
+    const query = new Queries();
+    db.query(query.viewRole(), (err, role) => {
+        if (err) { console.log(err); }
+        else {
+            console.table(role);
+            init();
+        }
+    });
+};
+
+// function to display table of all employees
+function viewEmployee() {
+    // Import query from Queries class;
+    const query = new Queries();
+    db.query(query.viewEmployee(), (err, employee) => {
         if (err) { console.log(err); }
         else {
             console.table(employee);
