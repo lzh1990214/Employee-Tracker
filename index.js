@@ -61,16 +61,16 @@ const option = async (response) => {
         viewEmployee(response);
     }
     else if (response === 'Add a department') {
-        addDepartment();
+        addDepartment(response);
     }
     else if (response === 'Add a role') {
-        addRole();
+        addRole(response);
     }
     else if (response === 'Add an employee') {
-        addEmployee();
+        addEmployee(response);
     }
     else if (response === 'Update an employee role') {
-        updateEmRole();
+        updateEmRole(response);
     }
     else if (response === 'I am done') {
         console.log('Thanks for using Employee Tracker!')
@@ -117,4 +117,23 @@ function viewEmployee() {
     });
 };
 
-
+function addDepartment() {
+    const query = new Queries();
+    inquirer
+        .prompt(
+            [{
+                name: "name",
+                type: 'input',
+                message: "What Department would you like to add?"
+            }]
+        )
+        .then(response => {
+            db.query(query.addDepartment(), response.name);
+            console.log(`New department added: ${response.name}`);
+            init();
+        })
+        .catch((err) => {
+            console.error(err);
+            db.end();
+        });
+}
