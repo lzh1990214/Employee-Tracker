@@ -120,13 +120,13 @@ function viewEmployee() {
 function addDepartment() {
     const query = new Queries();
     inquirer
-        .prompt(
-            [{
+        .prompt([
+            {
                 name: "name",
                 type: 'input',
-                message: "What Department would you like to add?"
-            }]
-        )
+                message: "What department do you want to add?"
+            }
+        ])
         .then(response => {
             db.query(query.addDepartment(), response.name);
             console.log(`New department added: ${response.name}`);
@@ -136,4 +136,105 @@ function addDepartment() {
             console.error(err);
             db.end();
         });
+}
+
+function addRole() {
+    const query = new Queries();
+    inquirer
+        .prompt([
+            {
+                name: 'title',
+                type: 'input',
+                message: 'What is the new role?',
+            },
+            {
+                name: 'salary',
+                type: 'number',
+                message: 'What is the salary of the new role?',
+            },
+            {
+                name: 'department',
+                type: 'list',
+                message: 'Which department does the new role fit?',
+                choices: [
+                    { name: 'Management', value: 1 },
+                    { name: 'Engineer', value: 2 },
+                    { name: 'Design', value: 3 },
+                    { name: 'Finance', value: 4 }
+                ]
+            },
+        ])
+        .then(response => {
+            db.query(
+                query.addRole(),
+                { 'title': response.title, 'salary': response.salary, 'department_id': response.department }
+            );
+            console.log(`New role added: ${response.title}`);
+            init();
+        })
+        .catch((err) => {
+            console.error(err);
+            db.end();
+        });
+}
+
+function addEmployee() {
+    const query = new Queries();
+    inquirer
+        .prompt([
+            {
+                name: 'first',
+                type: 'input',
+                message: "What is the new employee's first name?",
+            },
+            {
+                name: 'last',
+                type: 'input',
+                message: "What is the new employee's last name?",
+            },
+            // value number to match role id
+            {
+                name: 'role',
+                type: 'list',
+                message: "What is the new employee's role?",
+                choices: [
+                    { name: 'Principal', value: 1 },
+                    { name: 'Project Manager', value: 2 },
+                    { name: 'Software Engineer', value: 3 },
+                    { name: 'UX Designer', value: 4 },
+                    { name: 'UI Designer', value: 5 },
+                    { name: 'Accountant', value: 6 },
+                ]
+            },
+            // value number to match manager id
+            {
+                name: 'manager',
+                type: 'list',
+                message: 'Who is the employees manager?',
+                choices: [
+                    { name: 'John Doe', value: 1 },
+                    { name: 'Mike Brown', value: 2 },
+                    { name: 'Andrew Peters', value: 3 },
+                ]
+            }
+        ])
+        .then(response => {
+            db.query(
+                query.addEmployee(),
+                [response.first, response.last, response.role, response.manager]
+            );
+            console.log(`New employee added: ${response.first} ${response.last}`);
+            init();
+        })
+        .catch((err) => {
+            console.error(err);
+            db.end();
+        });
+}
+
+function updateEmRole() {
+    db.query("SELECT first_name from employee", (err, result) => {
+        if (err) throw err;
+        console.log(result.map(({ first_name }) => first_name));
+    })
 }
