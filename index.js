@@ -80,41 +80,51 @@ const option = async (response) => {
 
 // function to display table of all departments
 function viewDepartment() {
-    // Import query from Queries class;
+    // import query from Queries class;
     const query = new Queries();
-    db.query(query.viewDepartment(), (err, department) => {
-        if (err) { console.log(err); }
-        else {
-            console.table(department);
+    // upgrade an existing non-Promise connection to use Promises by '.promise()' from MySQL2
+    db.promise().query(query.viewDepartment())
+        .then(response => {
+            console.table(response[0]);
+            // console.log(response[0]);
             init();
-        }
-    });
+        })
+        .catch((err) => {
+            console.error(err);
+            db.end();
+        });
 };
 
 // function to display table of all roles
 function viewRole() {
     // Import query from Queries class;
     const query = new Queries();
-    db.query(query.viewRole(), (err, role) => {
-        if (err) { console.log(err); }
-        else {
-            console.table(role);
+    db.promise().query(query.viewRole())
+        .then(response => {
+            console.table(response[0]);
+            // console.log(response[0]);
             init();
-        }
-    });
+        })
+        .catch((err) => {
+            console.error(err);
+            db.end();
+        });
 };
 
 // function to display table of all employees
 function viewEmployee() {
     // Import query from Queries class;
     const query = new Queries();
-    db.query(query.viewEmployee(), (err, employee) => {
-        if (err) { console.log(err); }
-        else {
-            console.table(employee);
+    db.promise().query(query.viewEmployee())
+        .then(response => {
+            console.table(response[0]);
+            // console.log(response[0]);
             init();
-        }
-    });
+        })
+        .catch((err) => {
+            console.error(err);
+            db.end();
+        });
 };
 
 function addDepartment() {
@@ -140,46 +150,59 @@ function addDepartment() {
 
 function addRole() {
     const query = new Queries();
-    inquirer
-        .prompt([
-            {
-                name: 'title',
-                type: 'input',
-                message: 'What is the new role?',
-            },
-            {
-                name: 'salary',
-                type: 'number',
-                message: 'What is the salary of the new role?',
-            },
-            {
-                name: 'department',
-                type: 'list',
-                message: 'Which department does the new role fit?',
-                choices: [
-                    { name: 'Management', value: 1 },
-                    { name: 'Engineer', value: 2 },
-                    { name: 'Design', value: 3 },
-                    { name: 'Finance', value: 4 }
-                ]
-            },
-        ])
+    db.promise().query(query.viewDepartment())
         .then(response => {
-            db.query(
-                query.addRole(),
-                { 'title': response.title, 'salary': response.salary, 'department_id': response.department }
-            );
-            console.log(`New role added: ${response.title}`);
-            init();
+            console.log(response[0]);
+            console.log(response[0].map(({ name }) => name));
+
+            inquirer
+                .prompt([
+                    {
+                        name: 'title',
+                        type: 'input',
+                        message: 'What is the new role?',
+                    },
+                    {
+                        name: 'salary',
+                        type: 'number',
+                        message: 'What is the salary of the new role?',
+                    },
+                    {
+                        name: 'department',
+                        type: 'list',
+                        message: 'Which department does the new role fit?',
+                        choices: response[0],
+                    },
+                ])
+                .then(response => {
+                    db.query(
+                        query.addRole(),
+                        { 'title': response.title, 'salary': response.salary, 'department_id': response.department.id }
+                    );
+                    console.log(`New role added: ${response.title}`);
+                    console.log(response.department);
+                    console.log(response);
+                    init();
+                })
+                .catch((err) => {
+                    console.error(err);
+                    db.end();
+                });
+
         })
         .catch((err) => {
             console.error(err);
             db.end();
         });
+
+
+
+
 }
 
 function addEmployee() {
     const query = new Queries();
+
     inquirer
         .prompt([
             {
@@ -204,6 +227,7 @@ function addEmployee() {
                     { name: 'UX Designer', value: 4 },
                     { name: 'UI Designer', value: 5 },
                     { name: 'Accountant', value: 6 },
+
                 ]
             },
             // value number to match manager id
