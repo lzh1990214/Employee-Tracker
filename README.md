@@ -67,7 +67,7 @@ zli02@alumni.risd.edu
 ### View all Employees
 ![user input](./asset/img/03-view-employees.png)
 
-### Add a Departments
+### Add a Department
 ![user input](./asset/img/04-add-department.png)
 
 ### Add a Role
