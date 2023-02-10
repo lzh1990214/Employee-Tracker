@@ -1,19 +1,17 @@
-// dependencies
+// import dependencies
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
 require('console.table');
 const Queries = require('./lib/query');
 
-// create the connection
+// create connection to MySQL database
 const db = mysql.createConnection({
     host: 'localhost',
     port: 3306,
     user: 'root',
     password: 'password',
     database: 'myBusiness_db',
-},
-    // console.log(`Connected to the myBusiness_db database.`),
-);
+},);
 
 // connect to MySQL database
 db.connect(async (err) => {
@@ -37,12 +35,13 @@ const questionMain = [
             'Add a role',
             'Add an employee',
             'Update an employee role',
+            'Remove an employee',
             'I am done'
         ],
     }
 ]
 
-// main options on dashboard
+// prompt main options on dashboard
 const init = async () => {
     let questionRes = await inquirer.prompt(questionMain);
     option(questionRes.dashboard);
@@ -72,9 +71,12 @@ const option = async (response) => {
     else if (response === 'Update an employee role') {
         updateEmRole(response);
     }
+    else if (response === 'Remove an employee') {
+        deleteEmp(response);
+    }
     else if (response === 'I am done') {
         console.log('Thanks for using Employee Tracker!')
-        connection.end();
+        db.end();
     }
 };
 
@@ -86,7 +88,6 @@ function viewDepartment() {
     db.promise().query(query.viewDepartment())
         .then(response => {
             console.table(response[0]);
-            // console.log(response[0]);
             init();
         })
         .catch((err) => {
@@ -102,7 +103,6 @@ function viewRole() {
     db.promise().query(query.viewRole())
         .then(response => {
             console.table(response[0]);
-            // console.log(response[0]);
             init();
         })
         .catch((err) => {
@@ -118,7 +118,6 @@ function viewEmployee() {
     db.promise().query(query.viewEmployee())
         .then(response => {
             console.table(response[0]);
-            // console.log(response[0]);
             init();
         })
         .catch((err) => {
@@ -151,10 +150,13 @@ function addDepartment() {
 function addRole() {
     const query = new Queries();
     db.promise().query(query.viewDepartment())
-        .then(response => {
-            console.log(response[0]);
-            console.log(response[0].map(({ name }) => name));
-
+        .then(([rows]) => {
+            let departments = rows;
+            // reformat the objects in the array with map() method to set the value as the id number
+            const departmentChoices = departments.map(({ id, name }) => ({
+                name: name,
+                value: id,
+            }));
             inquirer
                 .prompt([
                     {
@@ -171,84 +173,162 @@ function addRole() {
                         name: 'department',
                         type: 'list',
                         message: 'Which department does the new role fit?',
-                        choices: response[0],
+                        choices: departmentChoices,
                     },
                 ])
                 .then(response => {
                     db.query(
                         query.addRole(),
-                        { 'title': response.title, 'salary': response.salary, 'department_id': response.department.id }
+                        { 'title': response.title, 'salary': response.salary, 'department_id': response.department }
                     );
                     console.log(`New role added: ${response.title}`);
-                    console.log(response.department);
-                    console.log(response);
                     init();
                 })
                 .catch((err) => {
                     console.error(err);
                     db.end();
                 });
-
         })
         .catch((err) => {
             console.error(err);
             db.end();
         });
-
-
-
-
 }
 
 function addEmployee() {
     const query = new Queries();
+    db.promise().query(query.viewRole())
+        .then(([rows]) => {
+            let roles = rows;
+            const roleChoices = roles.map(({ id, title }) => ({
+                name: title,
+                value: id,
+            }));
+            inquirer
+                .prompt([
+                    {
+                        name: 'first',
+                        type: 'input',
+                        message: "What is the new employee's first name?",
+                    },
+                    {
+                        name: 'last',
+                        type: 'input',
+                        message: "What is the new employee's last name?",
+                    },
+                    {
+                        name: 'role',
+                        type: 'list',
+                        message: "What is the new employee's role?",
+                        choices: roleChoices,
+                    }
+                ])
+                .then(response => {
+                    let first = response.first;
+                    let last = response.last;
+                    let role = response.role;
+                    db.promise().query(query.viewEmployee())
+                        .then(([rows]) => {
+                            // console.log(rows);
+                            let employees = rows;
+                            // map the objects in the array to set the value as the id number
+                            const employeeChoices = employees.map(({ id, first_name, last_name }) => ({
+                                name: first_name + ' ' + last_name,
+                                value: id,
+                            }));
+                            inquirer
+                                .prompt([
+                                    {
+                                        name: 'manager',
+                                        type: 'list',
+                                        message: "Who is the employee's manager?",
+                                        choices: employeeChoices,
+                                    }
+                                ])
+                                .then(response => {
+                                    let managerName = employeeChoices[parseInt(response.manager)].name;
+                                    db.query(
+                                        query.addEmployee(),
+                                        [first, last, role, response.manager]
+                                    );
+                                    console.log(`New employee added: ${first} ${last} and the manager is ${managerName}`);
+                                    init();
+                                })
+                        })
+                        .catch((err) => {
+                            console.error(err);
+                            db.end();
+                        });
+                })
+                .catch((err) => {
+                    console.error(err);
+                    db.end();
+                });
+        })
+}
 
-    inquirer
-        .prompt([
-            {
-                name: 'first',
-                type: 'input',
-                message: "What is the new employee's first name?",
-            },
-            {
-                name: 'last',
-                type: 'input',
-                message: "What is the new employee's last name?",
-            },
-            // value number to match role id
-            {
-                name: 'role',
-                type: 'list',
-                message: "What is the new employee's role?",
-                choices: [
-                    { name: 'Principal', value: 1 },
-                    { name: 'Project Manager', value: 2 },
-                    { name: 'Software Engineer', value: 3 },
-                    { name: 'UX Designer', value: 4 },
-                    { name: 'UI Designer', value: 5 },
-                    { name: 'Accountant', value: 6 },
-
-                ]
-            },
-            // value number to match manager id
-            {
-                name: 'manager',
-                type: 'list',
-                message: 'Who is the employees manager?',
-                choices: [
-                    { name: 'John Doe', value: 1 },
-                    { name: 'Mike Brown', value: 2 },
-                    { name: 'Andrew Peters', value: 3 },
-                ]
-            }
-        ])
-        .then(response => {
-            db.query(
-                query.addEmployee(),
-                [response.first, response.last, response.role, response.manager]
-            );
-            console.log(`New employee added: ${response.first} ${response.last}`);
-            init();
+function updateEmRole() {
+    const query = new Queries();
+    db.promise().query(query.viewEmployee())
+        .then(([rows]) => {
+            // console.log(rows);
+            let employees = rows;
+            // map the objects in the array to set the value as the id number
+            const employeeChoices = employees.map(({ id, first_name, last_name }) => ({
+                name: first_name + ' ' + last_name,
+                value: id,
+            }));
+            inquirer
+                .prompt([
+                    {
+                        name: 'employee',
+                        type: 'list',
+                        message: "Who do you want to change the role for?",
+                        choices: employeeChoices,
+                    },
+                ])
+                .then(response => {
+                    // console.log(response.employee);
+                    // save selected employee id as a variable
+                    let employeeID = response.employee;
+                    // extract selected employee name from the employee choices list
+                    let employeeName = employeeChoices[parseInt(employeeID) - 1].name;
+                    // console.log(employeeName);
+                    db.promise().query(query.viewRole())
+                        .then(([rows]) => {
+                            // console.log(rows);
+                            let roles = rows;
+                            // map the objects in the array to set the value as the id number
+                            const roleChoices = roles.map(({ id, title }) => ({
+                                name: title,
+                                value: id,
+                            }));
+                            inquirer
+                                .prompt([
+                                    {
+                                        name: 'role',
+                                        type: 'list',
+                                        message: "What is this employee's new role?",
+                                        choices: roleChoices,
+                                    }
+                                ])
+                                .then(response => {
+                                    let roleID = response.role;
+                                    let roleName = roleChoices[parseInt(roleID) - 1].name;
+                                    // console.log(employeeID);
+                                    // console.log(roleID);
+                                    db.query(query.updateEmpRole(), [parseInt(roleID), employeeID], (err, res) => {
+                                        if (err) throw err;
+                                        console.log(`The role of ${employeeName} has been updated to: ${roleName}`);
+                                        init();
+                                    })
+                                })
+                                .catch((err) => {
+                                    console.error(err);
+                                    db.end();
+                                });
+                        })
+                })
         })
         .catch((err) => {
             console.error(err);
@@ -256,9 +336,42 @@ function addEmployee() {
         });
 }
 
-function updateEmRole() {
-    db.query("SELECT first_name from employee", (err, result) => {
-        if (err) throw err;
-        console.log(result.map(({ first_name }) => first_name));
-    })
+function deleteEmp() {
+    const query = new Queries();
+    db.promise().query(query.viewEmployee())
+        .then(([rows]) => {
+            let employees = rows;
+            const employeeChoices = employees.map(({ id, first_name, last_name }) => ({
+                name: first_name + ' ' + last_name,
+                value: id,
+            }));
+            inquirer
+                .prompt([
+                    {
+                        name: 'employee',
+                        type: 'list',
+                        message: "Which employee do you want to remove?",
+                        choices: employeeChoices,
+                    },
+                ])
+                .then(response => {
+                    let empID = response.employee;
+                    // console.log(empID);
+                    let empName = employeeChoices[parseInt(empID) - 1];
+                    // console.log(empName.name);
+                    db.query(query.deleteEmployee(), [parseInt(empID)], (err, res) => {
+                        if (err) throw err;
+                        console.log(`Employee ${empName.name} has been removed from my office.`);
+                        init();
+                    })
+                })
+                .catch((err) => {
+                    console.error(err);
+                    db.end();
+                });
+        })
+        .catch((err) => {
+            console.error(err);
+            db.end();
+        });
 }
